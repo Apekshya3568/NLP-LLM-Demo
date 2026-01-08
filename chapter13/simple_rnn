@@ -1,0 +1,385 @@
+# Simple RNN — PyTorch Implementation
+"""import torch
+import torch.nn as nn
+
+# Input size = embedding dimension
+input_size = 5
+hidden_size = 4
+output_size = 3
+
+# Weight matrices (randomly initialized)
+W = torch.randn(hidden_size, input_size)   # input → hidden
+U = torch.randn(hidden_size, hidden_size)  # hidden → hidden
+V = torch.randn(output_size, hidden_size)  # hidden → output
+
+# Example sequence: 3 time-steps
+# Each word is a 5-dimensional vector (just a demo)
+x_seq = torch.randn(3, input_size)
+
+# Initial hidden state
+h_prev = torch.zeros(hidden_size)
+
+for t in range(len(x_seq)):
+    x_t = x_seq[t]
+
+    # Simple Elman RNN equation
+    h_t = torch.tanh(W @ x_t + U @ h_prev)
+    y_t = V @ h_t
+
+    print(f"Time step {t+1}")
+    print("Input x_t:", x_t)
+    print("Hidden h_t:", h_t)
+    print("Output y_t:", y_t)
+    print("-" * 40)
+
+    h_prev = h_t"""
+
+
+# Simple RNN — Keras / TensorFlow Implementation
+"""from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import SimpleRNN, Dense # this simplernn implement h_t = activation(Wx_t + Uh_{t-1})
+
+model = Sequential([
+    SimpleRNN(4, input_shape=(None, 5), return_sequences=True),
+    Dense(3)
+])
+
+model.summary()
+"""
+
+
+"""from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.text import Tokenizer
+
+# Sample data
+texts = ["I love this movie", 
+         "This film is terrible"]
+
+labels = [1, 0]  # positive, negative
+
+# Tokenize
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(texts)
+seqs = tokenizer.texts_to_sequences(texts)
+
+# Pad
+X = pad_sequences(seqs, maxlen=5)
+y = labels
+
+# Model
+model = Sequential([
+    Embedding(input_dim=100, output_dim=8, input_length=5),
+    SimpleRNN(10),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.fit(X, y, epochs=20)
+"""
+
+
+
+
+
+import numpy as np
+
+class SimpleRNN:
+    def __init__(self, input_size, hidden_size, output_size):
+        self.W = np.random.randn(hidden_size, input_size)
+        self.U = np.random.randn(hidden_size, hidden_size)
+        self.V = np.random.randn(output_size, hidden_size)
+
+    def step(self, x_t, h_prev):
+        h_t = np.tanh(self.W @ x_t + self.U @ h_prev)
+        y_t = self.V @ h_t
+        return h_t, y_t
+
+# Example
+rnn = SimpleRNN(input_size=5, hidden_size=4, output_size=3)
+
+x_seq = [np.random.randn(5), np.random.randn(5), np.random.randn(5)]
+h = np.zeros(4)
+
+for x in x_seq:
+    h, y = rnn.step(x, h)
+    print("Hidden:", h)
+    print("Output:", y)
+    print("---")
+
+
+
+
+
+
+
+
+# Full BPTT Training Example (PyTorch)
+
+
+"""
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Simple RNN model
+class SimpleRNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super().__init__()
+        self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        out, _ = self.rnn(x)
+        out = self.fc(out[:, -1, :])
+        return out
+
+model = SimpleRNN(10, 20, 2)
+optimizer = optim.Adam(model.parameters(), lr=0.01)
+loss_fn = nn.CrossEntropyLoss()
+
+for step in range(300):
+    x = torch.randn(8, 5, 10)      # (batch, timesteps, features)
+    y = torch.randint(0, 2, (8,))  # labels
+
+    optimizer.zero_grad()
+    logits = model(x)
+    loss = loss_fn(logits, y)
+    loss.backward()   # <-- BPTT happens here!
+    optimizer.step()
+
+    if step % 50 == 0:
+        print("Loss =", loss.item())"""
+
+
+
+
+# PyTorch: Stacked RNN Sentiment Classifier
+"""import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset
+from torch.nn.utils.rnn import pad_sequence
+
+# -------------------------------------------------
+# 1. Toy Dataset (sentences + labels)
+# -------------------------------------------------
+sentences = [
+    "i love this movie",
+    "this film is great",
+    "i hate this movie",
+    "this film is terrible"
+]
+
+labels = [1, 1, 0, 0]  # 1 = positive, 0 = negative
+
+# -------------------------------------------------
+# 2. Very Simple Tokenizer + Vocabulary
+# -------------------------------------------------
+word2idx = {"<pad>": 0}
+idx = 1
+
+for sentence in sentences:
+    for word in sentence.split():
+        if word not in word2idx:
+            word2idx[word] = idx
+            idx += 1
+
+def encode(sentence):
+    return torch.tensor([word2idx[word] for word in sentence.split()])
+
+encoded = [encode(s) for s in sentences]
+
+# -------------------------------------------------
+# 3. Dataset + Padding
+# -------------------------------------------------
+class SimpleDataset(Dataset):
+    def __init__(self, encoded, labels):
+        self.encoded = encoded
+        self.labels = torch.tensor(labels)
+
+    def __len__(self):
+        return len(self.encoded)
+
+    def __getitem__(self, i):
+        return self.encoded[i], self.labels[i]
+
+def collate(batch):
+    sequences = [item[0] for item in batch]
+    labels = torch.tensor([item[1] for item in batch])
+    padded = pad_sequence(sequences, batch_first=True)
+    return padded, labels
+
+loader = DataLoader(SimpleDataset(encoded, labels), 
+                    batch_size=2, shuffle=True, collate_fn=collate)
+
+# -------------------------------------------------
+# 4. Stacked RNN Model (2 Layers)
+# -------------------------------------------------
+class StackedRNN(nn.Module):
+    def __init__(self, vocab_size, embed_dim, hidden_size, num_layers):
+        super().__init__()
+
+        self.embed = nn.Embedding(vocab_size, embed_dim)
+
+        # num_layers makes it stacked
+        self.rnn = nn.RNN(
+            input_size=embed_dim,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True
+        )
+
+        self.fc = nn.Linear(hidden_size, 2)  # 2 classes
+
+    def forward(self, x):
+        x = self.embed(x)
+        out, h_n = self.rnn(x)
+
+        final_hidden = h_n[-1]       # last layer hidden state
+        logits = self.fc(final_hidden)
+        return logits
+
+model = StackedRNN(vocab_size=len(word2idx),
+                   embed_dim=50,
+                   hidden_size=64,
+                   num_layers=2)
+
+# -------------------------------------------------
+# 5. Training
+# -------------------------------------------------
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+for epoch in range(10):
+    for x, y in loader:
+        optimizer.zero_grad()
+        logits = model(x)
+        loss = criterion(logits, y)
+        loss.backward()
+        optimizer.step()
+
+    print(f"Epoch {epoch+1}, Loss = {loss.item():.4f}")
+"""
+
+
+
+# Keras: Stacked SimpleRNN Sentiment Classifier
+"""from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+
+# -------------------------------------------------
+# 1. Dataset
+# -------------------------------------------------
+sentences = [
+    "i love this movie",
+    "this film is great",
+    "i hate this movie",
+    "this film is terrible"
+]
+labels = [1, 1, 0, 0]
+
+# -------------------------------------------------
+# 2. Tokenizer
+# -------------------------------------------------
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(sentences)
+
+seqs = tokenizer.texts_to_sequences(sentences)
+padded = pad_sequences(seqs, padding="post")
+
+vocab_size = len(tokenizer.word_index) + 1
+
+# -------------------------------------------------
+# 3. Stacked RNN Model
+# -------------------------------------------------
+model = Sequential([
+    Embedding(input_dim=vocab_size, output_dim=50),
+
+    SimpleRNN(64, return_sequences=True),  # Layer 1
+    SimpleRNN(64),                         # Layer 2 (stacked)
+
+    Dense(2, activation="softmax")
+])
+
+model.compile(loss="sparse_categorical_crossentropy",
+              optimizer="adam", 
+              metrics=["accuracy"])
+
+model.summary()
+
+# -------------------------------------------------
+# 4. Train
+# -------------------------------------------------
+model.fit(padded, labels, epochs=10, batch_size=2)
+"""
+
+
+
+
+
+# Keras: Stacked SimpleRNN Sentiment Classifier
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+
+# -------------------------------------------------
+# 1. Dataset
+# -------------------------------------------------
+sentences = [
+    "i love this movie",
+    "this film is great",
+    "i hate this movie",
+    "this film is terrible"
+]
+labels = [1, 1, 0, 0]
+
+# -------------------------------------------------
+# 2. Tokenizer
+# -------------------------------------------------
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(sentences)
+
+seqs = tokenizer.texts_to_sequences(sentences)
+padded = pad_sequences(seqs, padding="post")
+
+vocab_size = len(tokenizer.word_index) + 1
+
+# -------------------------------------------------
+# 3. Stacked RNN Model
+# -------------------------------------------------
+model = Sequential([
+    Embedding(input_dim=vocab_size, output_dim=50),
+
+    SimpleRNN(64, return_sequences=True),  # Layer 1
+    SimpleRNN(64),                         # Layer 2 (stacked)
+
+    Dense(2, activation="softmax")
+])
+
+model.compile(loss="sparse_categorical_crossentropy",
+              optimizer="adam", 
+              metrics=["accuracy"])
+
+model.summary()
+
+# -------------------------------------------------
+# 4. Train
+# -------------------------------------------------
+model.fit(padded, labels, epochs=10, batch_size=2)
+
+
+
+# LSTM in Code (Keras Example)
+"""from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, LSTM, Dense
+
+model = Sequential([
+    Embedding(input_dim=100, output_dim=8, input_length=5),
+    LSTM(10),  # LSTM layer instead of SimpleRNN
+    Dense(1, activation='sigmoid')
+])"""
