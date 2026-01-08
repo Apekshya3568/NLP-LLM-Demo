@@ -44,45 +44,46 @@ model = Sequential([
     Dense(3)
 ])
 
-model.summary()
-"""
+model.summary()"""
 
-
-"""from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.preprocessing.text import Tokenizer
+import tensorflow as tf
+from keras.models import Sequential
+from keras.layers import Embedding, SimpleRNN, Dense
+from keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.text import Tokenizer
+import numpy as np
 
 # Sample data
 texts = ["I love this movie", 
          "This film is terrible"]
+labels = [1, 0]  # 1 = positive, 0 = negative
 
-labels = [1, 0]  # positive, negative
-
-# Tokenize
+# Tokenize the texts
 tokenizer = Tokenizer()
 tokenizer.fit_on_texts(texts)
 seqs = tokenizer.texts_to_sequences(texts)
 
-# Pad
+# Pad sequences to ensure equal length
 X = pad_sequences(seqs, maxlen=5)
-y = labels
+y = np.array(labels)  # Convert labels to numpy array
 
-# Model
+# Build the model
 model = Sequential([
-    Embedding(input_dim=100, output_dim=8, input_length=5),
-    SimpleRNN(10),
-    Dense(1, activation='sigmoid')
+    Embedding(input_dim=100, output_dim=8),  # input_dim = vocab size
+    SimpleRNN(10),                           # 10 units in RNN
+    Dense(1, activation='sigmoid')           # binary classification
 ])
 
+# Compile the model
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train the model
 model.fit(X, y, epochs=20)
+
+
+
+
 """
-
-
-
-
-
 import numpy as np
 
 class SimpleRNN:
@@ -107,7 +108,7 @@ for x in x_seq:
     print("Hidden:", h)
     print("Output:", y)
     print("---")
-
+"""
 
 
 
@@ -319,10 +320,48 @@ model.fit(padded, labels, epochs=10, batch_size=2)
 
 
 
+"""import numpy as np
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+from keras.models import Sequential
+from keras.layers import Embedding, SimpleRNN, Dense
+
+# Example data
+texts = ["I love this", "I hate that", "This is good", "This is bad"]
+labels = [2, 0, 2, 0]  # just example sentiment classes
+num_classes = 3
+
+# Tokenization
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(texts)
+sequences = tokenizer.texts_to_sequences(texts)
+max_len = max(len(seq) for seq in sequences)
+padded = pad_sequences(sequences, maxlen=max_len, padding='post')
+
+# Convert to proper types
+padded = np.array(padded, dtype=np.int32)
+labels = np.array(labels, dtype=np.int32)
+
+# Model
+vocab_size = len(tokenizer.word_index) + 1
+embedding_dim = 8
+
+model = Sequential([
+    Embedding(input_dim=vocab_size, output_dim=embedding_dim, input_length=max_len),
+    SimpleRNN(32, return_sequences=True),
+    SimpleRNN(32),
+    Dense(num_classes, activation='softmax')
+])
+
+model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.summary()
+
+# Train
+model.fit(padded, labels, epochs=10, batch_size=2)"""
 
 
 # Keras: Stacked SimpleRNN Sentiment Classifier
-from tensorflow.keras.preprocessing.text import Tokenizer
+"""from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
@@ -370,7 +409,7 @@ model.summary()
 # -------------------------------------------------
 # 4. Train
 # -------------------------------------------------
-model.fit(padded, labels, epochs=10, batch_size=2)
+model.fit(padded, labels, epochs=10, batch_size=2)"""
 
 
 
